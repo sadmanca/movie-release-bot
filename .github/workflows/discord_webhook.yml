@@ -1,0 +1,33 @@
+name: Discord Webhook
+
+on:
+  schedule:
+  - cron: "0 4 * * *" # run at 4 am everday
+  workflow_dispatch: 
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setting up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+          architecture: "x64"
+          cache: 'pip' # caching pip dependencies
+
+      - name: Install dependencies
+        run: |
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi               
+
+      - name: Run movie_release_bot.py
+        env:
+          WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
+          WATCHLIST_URL: ${{ secrets.WATCHLIST_URL }}
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+          TRAKT_API_KEY: ${{ secrets.TRAKT_API_KEY }}
+        run: |
+          python movie_release_bot.py
