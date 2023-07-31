@@ -61,7 +61,6 @@ def get_todays_releases():
         dates.append(date)
         
     today = datetime.date.today().strftime("%A %B %d, %Y")
-    today = "Friday July 28, 2023"
     
     titles = []
     for td in soup.find_all("td", class_="reldate"):
