@@ -6,6 +6,7 @@ import datetime
 import re
 import time
 import os
+import platform
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -49,7 +50,7 @@ def get_todays_releases():
     year = now.year
 
     url = f"https://www.dvdsreleasedates.com/digital-releases/{year}/{month_number}/digital-hd-releases-{month_name}-{year}"
-    # print(f"DVD Release Dates URL: {url}")
+    print(f"DVD Release Dates URL: {url}\n")
     
     response = requests.get(url)
 
@@ -59,8 +60,14 @@ def get_todays_releases():
     for td in soup.find_all("td", class_="reldate"):
         date = td.text.strip().split("\n")[0]
         dates.append(date)
+    dates_str = ', '.join(dates)
+    print(f"Dates: {dates_str}\n")
         
-    today = datetime.date.today().strftime("%A %B %d, %Y")
+    if platform.system() == 'Windows':
+        today = datetime.date.today().strftime("%A %B %#d, %Y")
+    elif platform.system() == 'Linux':
+        today = datetime.date.today().strftime("%A %B %-d, %Y")
+    print(f"Today's date: {today}\n")
     
     titles = []
     for td in soup.find_all("td", class_="reldate"):
@@ -81,11 +88,16 @@ def get_todays_watchlist_releases():
     watchlist = get_trakt_watchlist()
     todays_releases = get_todays_releases()
     
+    print(f"watchlist: {watchlist}\n")
+    print(f"todays_releases: {todays_releases}\n")
+    
     # todays_watchlist_releases = []
     # for movie in watchlist:
     #     if movie['movie']['title'] in todays_releases:
     #         todays_watchlist_releases.append(movie['movie']['title'])
     todays_watchlist_releases = [movie['movie']['title'] for movie in watchlist if movie['movie']['title'] in todays_releases]
+    print(f"Today's watchlist releases: {todays_watchlist_releases}\n")
+    
     return todays_watchlist_releases
 
 def get_movie_tmdb_metadata(title):
@@ -102,19 +114,22 @@ def get_movie_tmdb_metadata(title):
 def main():
     todays_watchlist_releases = get_todays_watchlist_releases()
     for movie in todays_watchlist_releases:
-        title, overview, release_date, vote_average, poster_url = get_movie_tmdb_metadata(movie)
+        title, overview, theatrical_release_date, vote_average, poster_url = get_movie_tmdb_metadata(movie)
         
         body = f"{overview}"
         
-        date_obj = datetime.datetime.strptime(release_date, '%Y-%m-%d')
-        formatted_date_str = date_obj.strftime('%d %B %Y')
-        subtitle = f"Rating: {vote_average}/10\nRelease Date: {formatted_date_str}"
+        theatrical_release_date = datetime.datetime.strptime(theatrical_release_date, '%Y-%m-%d')
+        theatrical_release_date = theatrical_release_date.strftime('%d %B %Y')
         
-        # print(f"Title: {title}")
-        # print(f"Subtitle: {subtitle}")
-        # print(f"Body: {body}")
-        # print(f"Poster URL: {poster_url}")
-        # print()
+        digital_release_date = datetime.date.today().strftime('%d %B %Y')
+        
+        subtitle = f"Rating: {vote_average}/10\nTheatrical Release Date: {theatrical_release_date}\nDigital Release Date: {digital_release_date}"
+        
+        print(f"Title: {title}")
+        print(f"Subtitle: \n{subtitle}")
+        print(f"Body: {body}")
+        print(f"Poster URL: {poster_url}")
+        print()
         
         post_message(title, subtitle, body, image_url=poster_url)
 
@@ -145,7 +160,7 @@ def post_message(title, subtitle, body, image_url):
     }
 
     with requests.post(WEBHOOK_URL, json=payload) as response:
-        print(response.status_code)
+        print(f"Discord webhook response: {response.status_code}")
 
 if __name__ == "__main__":
     main()
